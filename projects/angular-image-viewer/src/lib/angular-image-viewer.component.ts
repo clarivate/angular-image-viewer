@@ -73,16 +73,20 @@ export class AngularImageViewerComponent implements OnInit, OnChanges {
   @Output()
   customImageEvent: EventEmitter<CustomImageEvent> = new EventEmitter();
 
+  @Output()
+  actionNameAndindex: EventEmitter<any> = new EventEmitter();
+
   styleHeight = '98vh';
 
   public style = { transform: '', msTransform: '', oTransform: '', webkitTransform: '' };
   public fullscreen = false;
   public loading = true;
   public isDragOn = false;
+
   private scale = 1;
   private rotation = 0;
   private hovered = false;
-
+  
   constructor(@Optional() @Inject('config') public moduleConfig: ImageViewerConfig) { }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -105,6 +109,7 @@ export class AngularImageViewerComponent implements OnInit, OnChanges {
       this.loading = true;
       this.index++;
       this.triggerIndexBinding();
+      this.triggerActionNameAndindex('next');
       this.fireCustomEvent('next', this.index);
       this.reset();
     }
@@ -116,6 +121,7 @@ export class AngularImageViewerComponent implements OnInit, OnChanges {
       this.loading = true;
       this.index--;
       this.triggerIndexBinding();
+      this.triggerActionNameAndindex('prev');
       this.fireCustomEvent('prev', this.index);
       this.reset();
     }
@@ -187,6 +193,11 @@ export class AngularImageViewerComponent implements OnInit, OnChanges {
 
   triggerConfigBinding() {
     this.configChange.next(this.config);
+  }
+
+  triggerActionNameAndindex(actionName?: string) {
+    const actionItem = (actionName) ? actionName : 'updateIndex';
+    this.actionNameAndindex.next({ name: actionItem, value: this.index });
   }
 
   fireCustomEvent(name, imageIndex) {
