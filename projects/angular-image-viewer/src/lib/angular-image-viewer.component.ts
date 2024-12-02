@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener, Optional, Inject, Input, Output,
+import { Component, OnInit, AfterContentChecked, HostListener, Optional, Inject, Input, Output,
   EventEmitter, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import { ImageViewerConfig } from './models/image-viewer-config.model';
 import { CustomImageEvent } from './models/custom-image-event-model';
@@ -28,7 +28,8 @@ const DEFAULT_CONFIG: ImageViewerConfig = {
     next: 'fa fa-chevron-right',
     prev: 'fa fa-chevron-left',
     fullscreen: 'fa fa-arrows-alt',
-  }
+  },
+  isZoomPersistent: false
 };
 
 @Component({
@@ -37,24 +38,24 @@ const DEFAULT_CONFIG: ImageViewerConfig = {
   templateUrl: './angular-image-viewer.component.html',
   styleUrls: ['./angular-image-viewer.component.scss']
 })
-export class AngularImageViewerComponent implements OnInit, OnChanges {
+export class AngularImageViewerComponent implements OnInit, OnChanges, AfterContentChecked {
 
-  @ViewChild(CdkDrag, { static: true }) cdkDrag: CdkDrag;
-
-  @Input()
-  src: string[];
+  @ViewChild(CdkDrag, { static: true }) cdkDrag!: CdkDrag;
 
   @Input()
-  config: ImageViewerConfig;
+  src: string[] = [];
 
   @Input()
-  screenHeightOccupied: 0;             // In Px
+  config!: ImageViewerConfig;
+
+  @Input()
+  screenHeightOccupied = 0;             // In Px
 
   @Input()
   index = 0;
 
   @Input()
-  imageName: string;
+  imageName!: string;
 
   @Input()
   footerTexts = [
@@ -63,6 +64,9 @@ export class AngularImageViewerComponent implements OnInit, OnChanges {
     'View previous or next image',
     'using < > on the keyboard'
   ];
+
+  @Input()
+  scaleInput = 1;
 
   @Output()
   indexChange: EventEmitter<number> = new EventEmitter();
@@ -86,10 +90,15 @@ export class AngularImageViewerComponent implements OnInit, OnChanges {
   constructor(@Optional() @Inject('config') public moduleConfig: ImageViewerConfig) { }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes.screenHeightOccupied) {
+    if (changes['screenHeightOccupied']) {
       this.styleHeight = 'calc(98vh - ' + this.screenHeightOccupied + 'px)';
-    } else if (changes.index) {
+    } else if (changes['index']) {
       this.reset();
+    }
+
+    if(changes['scaleInput'] && this.config['isZoomPersistent']) {
+      this.scale = changes['scaleInput'].currentValue;
+      this.updateStyle();
     }
   }
 
@@ -99,8 +108,14 @@ export class AngularImageViewerComponent implements OnInit, OnChanges {
     this.triggerConfigBinding();
   }
 
+  ngAfterContentChecked(): void {
+    let dragElement = document.querySelectorAll('.drag-element')[0];
+    let imgElem = dragElement.querySelector('img');
+    (imgElem as HTMLElement).style.transform = `rotate(${this.rotation}deg) scale(${this.scale})`;
+  }
+
   @HostListener('window:keyup.ArrowRight', ['$event'])
-  nextImage(event) {
+  nextImage(event: MouseEvent) {
     if (this.canNavigate(event) && this.index < this.src.length - 1) {
       this.loading = true;
       this.index++;
@@ -111,7 +126,7 @@ export class AngularImageViewerComponent implements OnInit, OnChanges {
   }
 
   @HostListener('window:keyup.ArrowLeft', ['$event'])
-  prevImage(event) {
+  prevImage(event: MouseEvent) {
     if (this.canNavigate(event) && this.index > 0) {
       this.loading = true;
       this.index--;
@@ -122,24 +137,26 @@ export class AngularImageViewerComponent implements OnInit, OnChanges {
   }
 
   zoomIn() {
-    this.scale *= (1 + this.config.zoomFactor);
+    this.scale *= (1 + this.unwrap(this.config.zoomFactor));
     this.fireCustomEvent('zoomIn', this.scale);
     this.updateStyle();
   }
 
   zoomOut() {
-    if (this.scale > this.config.zoomFactor) {
-      this.scale /= (1 + this.config.zoomFactor);
+    if (this.scale > this.unwrap(this.config.zoomFactor)) {
+      this.scale /= (1 + this.unwrap(this.config.zoomFactor));
     }
     this.fireCustomEvent('zoomOut', this.scale);
     this.updateStyle();
   }
 
-  scrollZoom(evt) {
+  scrollZoom(evt: WheelEvent) {
     if (this.config.wheelZoom) {
       evt.deltaY > 0 ? this.zoomOut() : this.zoomIn();
       return false;
     }
+
+    return true;
   }
 
   rotateClockwise() {
@@ -164,7 +181,7 @@ export class AngularImageViewerComponent implements OnInit, OnChanges {
   imageNotFound() {
   }
 
-  onDragStart(evt) {
+  onDragStart(evt: any) {
     if (evt.source._dragRef._initialTransform && evt.source._dragRef._initialTransform.length > 0) {
       const myTranslate = evt.source._dragRef._initialTransform.split(' rotate')[0];
       const myRotate = this.style.transform.split(' rotate')[1];
@@ -189,15 +206,17 @@ export class AngularImageViewerComponent implements OnInit, OnChanges {
     this.configChange.next(this.config);
   }
 
-  fireCustomEvent(name, imageIndex) {
+  fireCustomEvent(name: string, imageIndex: number) {
     this.customImageEvent.emit(new CustomImageEvent(name, imageIndex));
   }
 
   reset() {
-    this.scale = 1;
-    this.rotation = 0;
-    this.updateStyle();
-    this.cdkDrag.reset();
+    if(!this.config.isZoomPersistent) {
+      this.scale = 1;
+      this.rotation = 0;
+      this.updateStyle();
+      this.cdkDrag.reset();
+    }
   }
 
   @HostListener('mouseover')
@@ -216,6 +235,8 @@ export class AngularImageViewerComponent implements OnInit, OnChanges {
     } else if (event.type === 'click') {
       return this.hovered;
     }
+
+    return null;
   }
 
   private updateStyle() {
@@ -234,4 +255,5 @@ export class AngularImageViewerComponent implements OnInit, OnChanges {
     return result;
   }
 
+  private unwrap = (n: number|undefined): number => n?n:0;
 }

@@ -6,6 +6,7 @@ export interface ImageViewerConfig {
     wheelZoom?: boolean;
     allowFullscreen?: boolean;
     allowKeyboardNavigation?: boolean;
+    isZoomPersistent?: boolean;
 
     btnShow?: {
         zoomIn?: boolean;
