@@ -3,10 +3,10 @@
 
 demo: https://clarivate.github.io/angular-image-viewer/
 
-A configurable Angular image viewer component, compatible with Angular 9
+A configurable Angular image viewer component, compatible with Angular 14
 
 ## Features:
- * Compatible with Angular 9
+ * Compatible with Angular 14
  * Configurable
  * Rotate image
  * Zoom image
@@ -66,6 +66,7 @@ The configuration object is structured as below. All values are optional, and if
   wheelZoom: true, // If true, the mouse wheel can be used to zoom in
   allowFullscreen: true, // If true, the fullscreen button will be shown, allowing the user to enter fullscreen mode
   allowKeyboardNavigation: true, // If true, the left / right arrow keys can be used for navigation
+  isZoomPersistent: false, // if true, keeps zoom persistent across image exploration
   btnIcons: { // The icon classes that will apply to the buttons. By default, font-awesome is used.
     zoomIn: 'fa fa-plus',
     zoomOut: 'fa fa-minus',
