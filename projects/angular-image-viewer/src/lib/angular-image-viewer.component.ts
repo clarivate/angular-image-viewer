@@ -109,9 +109,11 @@ export class AngularImageViewerComponent implements OnInit, OnChanges, AfterCont
   }
 
   ngAfterContentChecked(): void {
-    let dragElement = document.querySelectorAll('.drag-element')[0];
-    let imgElem = dragElement.querySelector('img');
-    (imgElem as HTMLElement).style.transform = `rotate(${this.rotation}deg) scale(${this.scale})`;
+    if (document.querySelectorAll('.drag-element')[0]) {
+      let dragElement = document.querySelectorAll('.drag-element')[0];
+      let imgElem = dragElement.querySelector('img');
+      (imgElem as HTMLElement).style.transform = `rotate(${this.rotation}deg) scale(${this.scale})`;
+    }
   }
 
   @HostListener('window:keyup.ArrowRight', ['$event'])
